@@ -6,7 +6,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Hardcoded Supabase credentials
 const SUPABASE_URL = "https://smvxgcbylqtnncanucdk.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNtdnhnY2J5bHF0bm5jYW51Y2RrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMDgzNDksImV4cCI6MjA3MzY4NDM0OX0.mjC6vcJu1d79W6mrD_o7FkGdBkhHa3jx9Mm_bB-GUtY";
 

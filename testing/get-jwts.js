@@ -10,5 +10,3 @@ async function getToken(email, password) {
   else console.log(email, "JWT:", data.session?.access_token);
 }
 
-getToken('olajideweb@gmail.com', 'Jedu1122')
-getToken('testuser@example.com', 'password123')
