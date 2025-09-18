@@ -1,31 +1,52 @@
 -- Create files table
-create table if not exists public.files (
-  id uuid primary key default gen_random_uuid(),
-  path text not null,
-  owner_id uuid not null references auth.users(id) on delete cascade,
-  created_at timestamptz default now()
+CREATE TABLE files (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  path TEXT NOT NULL,
+  owner_id UUID REFERENCES auth.users(id) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Enable Row Level Security
-alter table public.files enable row level security;
+-- Enable RLS
+ALTER TABLE files ENABLE ROW LEVEL SECURITY;
 
--- Policy: allow owners to SELECT their rows
-create policy "Files: owners can select" on public.files
-  for select
-  using (owner_id = auth.uid());
+-- RLS Policy: Users can only access their own files
+CREATE POLICY "Users can only access own files"
+ON files FOR ALL
+USING (auth.uid() = owner_id);
 
--- Policy: allow owners to INSERT a row only if owner_id = auth.uid()
-create policy "Files: owners can insert own rows" on public.files
-  for insert
-  with check (owner_id = auth.uid());
+-- Create index for better performance
+CREATE INDEX idx_files_owner_id ON files(owner_id);
+CREATE INDEX idx_files_path ON files(path);
 
--- Policy: allow owners to UPDATE their own rows
-create policy "Files: owners can update" on public.files
-  for update
-  using (owner_id = auth.uid())
-  with check (owner_id = auth.uid());
+-- Policy 1: Users can only upload to their own folder
+CREATE POLICY "Users can upload own files"
+ON storage.objects FOR INSERT
+WITH CHECK (
+  bucket_id = 'uploads'
+  AND (storage.foldername(name))[1] = auth.uid()::text
+);
 
--- Policy: allow owners to DELETE their own rows
-create policy "Files: owners can delete" on public.files
-  for delete
-  using (owner_id = auth.uid());
+-- Policy 2: Users can only read their own files
+CREATE POLICY "Users can read own files"
+ON storage.objects FOR SELECT
+USING (
+  bucket_id = 'uploads'
+  AND (storage.foldername(name))[1] = auth.uid()::text
+);
+
+-- Policy 3: Users can update their own files
+CREATE POLICY "Users can update own files"
+ON storage.objects FOR UPDATE
+USING (
+  bucket_id = 'uploads'
+  AND (storage.foldername(name))[1] = auth.uid()::text
+);
+
+-- Policy 4: Users can delete their own files
+CREATE POLICY "Users can delete own files"
+ON storage.objects FOR DELETE
+USING (
+  bucket_id = 'uploads'
+  AND (storage.foldername(name))[1] = auth.uid()::text
+);
