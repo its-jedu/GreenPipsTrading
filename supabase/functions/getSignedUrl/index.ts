@@ -6,8 +6,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SUPABASE_URL = "supabase_url";
-const SUPABASE_ANON_KEY = "supabase_anon_key";
+const SUPABASE_URL = "YOUR_SUPABASE_URL";
+const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+const SUPABASE_SERVICE_ROLE_KEY = "YOUR_SUPABASE_SERVICE_ROLE_KEY";
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -36,13 +37,16 @@ serve(async (req) => {
 
     const jwt = authHeader.replace("Bearer ", "");
     
-    // Create Supabase client with hardcoded credentials
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    // Create user client for authentication and database queries
+    const userSupabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: authHeader } }
     });
 
+    // Create admin client for signed URL generation only
+    const adminSupabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
     // Get user from JWT
-    const { data: { user }, error: userError } = await supabase.auth.getUser(jwt);
+    const { data: { user }, error: userError } = await userSupabase.auth.getUser(jwt);
     if (userError || !user) {
       return new Response(
         JSON.stringify({ error: "Invalid token" }),
@@ -51,8 +55,8 @@ serve(async (req) => {
     }
 
     // Check if file exists and belongs to user
-    const { data: file, error: fileError } = await supabase
-      .from("uploads")
+    const { data: file, error: fileError } = await userSupabase
+      .from("files")
       .select("*")
       .eq("path", filePath)
       .eq("owner_id", user.id)
@@ -65,8 +69,8 @@ serve(async (req) => {
       );
     }
 
-    // Generate signed URL (60 seconds expiration)
-    const { data: signedUrlData, error: signedUrlError } = await supabase
+    // Generate signed URL using admin client (60 seconds expiration)
+    const { data: signedUrlData, error: signedUrlError } = await adminSupabase
       .storage
       .from("uploads")
       .createSignedUrl(filePath, 60);
